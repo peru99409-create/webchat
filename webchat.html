@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ウェブチャット</title>
+<meta name="theme-color" content="#111413">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ウェブチャット">
+<style>
+:root{--bg:#111413;--bg2:#171a19;--bg3:#202523;--bg4:#2b3230;--line:#2c3331;--text:#e8edeb;--text2:#9ba7a3;--text3:#69756f;--accent:#4cc09a;--on:#0c1f18;--danger:#e0716a;--ease:cubic-bezier(.2,.8,.2,1);--spring:cubic-bezier(.34,1.56,.64,1);color-scheme:dark}
+@media(prefers-color-scheme:light){:root{--bg:#eef1ee;--bg2:#f7f9f6;--bg3:#ffffff;--bg4:#e3e7e3;--line:#d7dcd7;--text:#19201d;--text2:#56625d;--text3:#8a948f;--accent:#1c9a74;--on:#ffffff;--danger:#c9453d;color-scheme:light}}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+body{background:var(--bg);color:var(--text);font:400 14px/24px -apple-system,BlinkMacSystemFont,'Hiragino Sans','Yu Gothic',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,textarea{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+input,textarea{background:var(--bg2);border:1px solid var(--line);border-radius:8px;outline:0;width:100%;padding:0 16px;transition:border-color .2s,box-shadow .2s}
+input{height:48px}
+input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+::placeholder{color:var(--text3)}
+a{color:var(--accent)}
+.ic{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.mono{font-family:ui-monospace,'SF Mono',Menlo,monospace}
+.xs{font-size:12px;line-height:16px}.mute{color:var(--text2)}.faint{color:var(--text3)}
+[hidden]{display:none!important}
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--bg);padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);animation:enter .36s var(--ease) both}
+@keyframes enter{from{opacity:0;transform:translateX(24px)}}
+.screen.back{animation-name:enterb}
+@keyframes enterb{from{opacity:0;transform:translateX(-24px)}}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 24px;border-radius:8px;background:var(--bg3);border:1px solid var(--line);font-weight:500;transition:background .15s,transform .15s var(--ease),opacity .2s}
+.btn:active{transform:scale(.97)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on)}
+.btn[disabled]{opacity:.35;pointer-events:none}
+.ib{width:40px;height:40px;border-radius:8px;display:inline-grid;place-items:center;color:var(--text2);flex:none;transition:background .15s,color .15s,transform .15s var(--ease)}
+.ib:hover{background:var(--bg3);color:var(--text)}.ib:active{transform:scale(.9)}
+
+/* entry */
+#entry{overflow-y:auto}
+.wrap{width:min(440px,100%);margin:0 auto;padding:40px 24px 32px;display:flex;flex-direction:column;gap:24px}
+.rise{opacity:0;transform:translateY(16px);animation:rise .6s var(--ease) forwards;animation-delay:calc(var(--d,0)*90ms)}
+@keyframes rise{to{opacity:1;transform:none}}
+.brand{display:flex;align-items:center;gap:16px}
+.logo{width:40px;height:40px;border-radius:16px;background:var(--accent);color:var(--on);display:grid;place-items:center}
+.brand b{font-size:20px;line-height:32px;font-weight:700;white-space:nowrap}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:16px}
+.lab{font-size:12px;line-height:16px;color:var(--text2);font-weight:500}
+.idbox{display:flex;align-items:center;gap:16px;min-height:56px}
+.av{--h:160;width:40px;height:40px;border-radius:50%;background:hsl(var(--h) 42% 38%);color:#fff;display:grid;place-items:center;font-weight:700;font-size:14px;flex:none;letter-spacing:.02em;transition:background .4s}
+.av.big{width:56px;height:56px;font-size:18px}
+.idtxt{font-size:32px;line-height:40px;font-weight:700;letter-spacing:.12em;display:flex;overflow:hidden}
+.idtxt span{display:inline-block;animation:roll .45s var(--ease) both;animation-delay:calc(var(--i)*35ms)}
+@keyframes roll{from{transform:translateY(100%);opacity:0}}
+.idtxt.none{color:var(--text3);letter-spacing:.2em}
+.idl{font-size:12px;color:var(--text3);margin-right:8px;font-weight:500;letter-spacing:.08em;align-self:flex-end;padding-bottom:4px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{height:32px;padding:0 16px;border-radius:16px;background:var(--bg3);border:1px solid var(--line);font-size:13px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:border-color .15s,transform .15s var(--ease)}
+.chip:hover{border-color:var(--accent)}.chip:active{transform:scale(.96)}
+.off{display:flex;align-items:center;gap:16px;padding:16px 24px;border-radius:16px;border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));background:color-mix(in srgb,var(--accent) 8%,var(--bg2));text-align:left;width:100%;transition:border-color .2s,transform .15s var(--ease)}
+.off:hover{border-color:var(--accent)}.off:active{transform:scale(.985)}
+.off .oi{width:40px;height:40px;border-radius:8px;background:var(--accent);color:var(--on);display:grid;place-items:center;flex:none}
+.new{height:20px;padding:0 8px;border-radius:10px;background:var(--accent);color:var(--on);font-size:11px;font-weight:700;line-height:20px;letter-spacing:.06em;animation:pop .5s var(--spring)}
+@keyframes pop{from{transform:scale(.4)}}
+.shake{animation:shake .4s var(--ease)}
+@keyframes shake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+
+/* top bar */
+.top{height:56px;flex:none;display:flex;align-items:center;gap:8px;padding:0 8px;border-bottom:1px solid var(--line);background:var(--bg2)}
+.top .t{flex:1;min-width:0;display:flex;flex-direction:column}
+.top b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px}
+.st{display:flex;align-items:center;gap:8px;font-size:12px;line-height:16px;color:var(--text2)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--text3);position:relative}
+.dot.on{background:var(--accent)}
+.dot.on::after{content:"";position:absolute;inset:-2px;border-radius:50%;border:1px solid var(--accent);animation:pulse 2.4s var(--ease) infinite}
+.dot.wait{background:#d9a441;animation:blink 1s infinite}
+@keyframes pulse{0%{transform:scale(.8);opacity:.9}100%{transform:scale(2);opacity:0}}
+@keyframes blink{50%{opacity:.3}}
+.me-chip{display:flex;align-items:center;gap:8px;height:32px;padding:0 8px 0 4px;border-radius:16px;background:var(--bg3);border:1px solid var(--line);font-size:12px;font-weight:700;letter-spacing:.06em;flex:none}
+.me-chip .av{width:24px;height:24px;font-size:10px}
+
+/* chat */
+#msgs{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:16px;display:flex;flex-direction:column;position:relative;-webkit-overflow-scrolling:touch}
+#msgs::before{content:"";flex:1}
+.day{align-self:center;margin:16px 0 8px;padding:0 16px;height:24px;border-radius:12px;background:var(--bg3);font-size:12px;line-height:24px;color:var(--text2)}
+.row{display:flex;gap:8px;margin-top:2px;max-width:100%}
+.row.first{margin-top:12px}
+.row.r{flex-direction:row-reverse}
+.row.in{animation:msgin .32s var(--ease) both}
+@keyframes msgin{from{opacity:0;transform:translateY(16px) scale(.98)}}
+.col{display:flex;flex-direction:column;align-items:flex-start;min-width:0;max-width:min(520px,78%)}
+.row.r .col{align-items:flex-end}
+.who{font-size:12px;line-height:16px;color:var(--text2);margin:0 8px 4px;font-weight:700;letter-spacing:.06em}
+.bub{width:fit-content;max-width:100%;padding:8px 16px;border-radius:16px;background:var(--bg3);border:1px solid var(--line);white-space:pre-wrap;word-break:break-word}
+.row:not(.r).first .bub{border-top-left-radius:4px}
+.row.mine .bub{background:var(--accent);border-color:var(--accent);color:var(--on)}
+.row.r.first .bub{border-top-right-radius:4px}
+.row.mine .bub a,.bub.cu a{color:inherit}
+.meta{font-size:11px;line-height:16px;color:var(--text3);margin:2px 8px 0}
+.meta.fail{color:var(--danger);cursor:pointer}
+.sp{width:40px;flex:none}
+.hint{margin:auto;text-align:center;color:var(--text2);padding:32px 16px;max-width:320px}
+.hint .ring{width:64px;height:64px;border-radius:50%;border:1px solid var(--line);margin:0 auto 16px;display:grid;place-items:center;color:var(--text3);animation:float 4s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-4px)}}
+.jump{position:absolute;right:16px;bottom:96px;height:32px;padding:0 16px;border-radius:16px;background:var(--bg3);border:1px solid var(--line);font-size:12px;box-shadow:0 8px 24px rgb(0 0 0/.28);animation:pop .3s var(--spring);z-index:3}
+.comp{flex:none;padding:8px 16px 16px;position:relative}
+.compbox{display:flex;align-items:flex-end;background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:4px;transition:border-color .2s,box-shadow .2s}
+.compbox:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}
+.compbox textarea{border:0;background:transparent;resize:none;min-height:40px;max-height:136px;padding:8px;box-shadow:none!important;line-height:24px}
+.send{background:var(--bg4);color:var(--text3);transition:background .2s,color .2s,transform .2s var(--spring)}
+.send.rdy{background:var(--accent);color:var(--on)}
+.send.rdy .ic{animation:nudge .4s var(--spring)}
+@keyframes nudge{from{transform:translate(-4px,4px)}}
+.cnt{position:absolute;right:72px;bottom:24px;font-size:11px;color:var(--danger)}
+
+/* notices */
+#nlist{flex:1;overflow-y:auto;padding:16px;overscroll-behavior:contain}
+.nin{width:min(640px,100%);margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.ncard{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:8px;opacity:0;transform:translateY(16px);animation:rise .5s var(--ease) forwards;animation-delay:calc(var(--d,0)*80ms)}
+.ncard.fresh{border-color:color-mix(in srgb,var(--accent) 50%,var(--line))}
+.ncard h3{font-size:16px;line-height:24px}
+.ncard p{color:var(--text2);white-space:pre-wrap;word-break:break-word}
+.ntop{display:flex;align-items:center;gap:8px}
+#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50%,24px);padding:8px 24px;background:var(--bg4);border:1px solid var(--line);border-radius:12px;opacity:0;pointer-events:none;transition:opacity .25s,transform .3s var(--spring);z-index:10;max-width:calc(100vw - 32px)}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+/* tutorial / name dialog */
+.tut{position:fixed;inset:0;z-index:20;background:rgb(0 0 0/.55);display:grid;place-items:center;padding:16px;animation:fade .25s both}
+@keyframes fade{from{opacity:0}}
+.tcard{width:min(400px,100%);background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:16px;animation:tpop .4s var(--spring) both}
+@keyframes tpop{from{opacity:0;transform:translateY(24px) scale(.96)}}
+.tstep{display:flex;flex-direction:column;gap:16px;animation:tswap .4s var(--ease) both}
+.tstep.bk{animation-name:tswapb}
+@keyframes tswap{from{opacity:0;transform:translateX(24px)}}
+@keyframes tswapb{from{opacity:0;transform:translateX(-24px)}}
+.tmock{min-height:136px;border-radius:12px;background:var(--bg);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px;overflow:hidden}
+.tdots{display:flex;gap:8px;justify-content:center}
+.tdots i{width:8px;height:8px;border-radius:4px;background:var(--bg4);transition:width .3s var(--ease),background .3s}
+.tdots i.on{width:24px;background:var(--accent)}
+.tin{height:40px;padding:0 16px;border:1px solid var(--accent);border-radius:8px;display:flex;align-items:center;background:var(--bg2);min-width:160px}
+.typing{display:inline-block;overflow:hidden;white-space:nowrap;width:0;animation:typ .8s steps(2) .4s forwards}
+@keyframes typ{to{width:2em}}
+.caret{display:inline-block;width:2px;height:16px;background:var(--accent);margin-left:2px;animation:blink2 1s steps(1) infinite}
+@keyframes blink2{50%{opacity:0}}
+.trow{display:flex;align-items:center;gap:8px}
+.tmatch{font-size:12px;color:var(--accent);font-weight:700;animation:pop .6s var(--spring) .5s both}
+.tacts{display:flex;gap:8px}.tacts .btn{height:40px;flex:1;padding:0 16px}
+.idc{color:var(--text3);font-weight:500;margin-left:4px;letter-spacing:.04em}
+.coach{pointer-events:none}
+#coach{position:fixed;inset:0;z-index:15;pointer-events:none}
+.spot{position:fixed;left:0;top:0;width:0;height:0;border-radius:12px;box-shadow:0 0 0 9999px rgb(0 0 0/.58);outline:2px solid var(--accent);opacity:0;transition:left .35s var(--ease),top .35s var(--ease),width .35s var(--ease),height .35s var(--ease),opacity .25s;pointer-events:none}
+.spot::after{content:"";position:absolute;inset:-6px;border-radius:16px;border:2px solid var(--accent);animation:spotp 1.6s var(--ease) infinite}
+@keyframes spotp{0%{transform:scale(.96);opacity:.9}100%{transform:scale(1.06);opacity:0}}
+.cscrim{position:fixed;inset:0;background:rgb(0 0 0/.58);pointer-events:auto}
+.coachb{position:fixed;width:min(320px,calc(100vw - 32px));background:var(--bg2);border:1px solid var(--accent);border-radius:16px;padding:16px;box-shadow:0 8px 24px rgb(0 0 0/.35);pointer-events:auto;transition:top .35s var(--ease),left .35s var(--ease)}
+.cin{display:flex;flex-direction:column;gap:8px;animation:cin .35s var(--ease) both}
+@keyframes cin{from{opacity:0;transform:translateY(8px)}}
+.cn{font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.08em}
+.cb{display:flex;gap:8px;align-items:center;margin-top:4px}
+.cq{font-size:12px;color:var(--text3);height:32px;padding:0 8px;margin-left:-8px}
+.cbtn{height:32px;padding:0 16px;border-radius:16px;background:var(--bg3);border:1px solid var(--line);font-size:13px;font-weight:500;transition:transform .15s var(--ease)}
+.cbtn:active{transform:scale(.95)}
+.cbtn.pri{background:var(--accent);border-color:var(--accent);color:var(--on)}
+#pop{position:fixed;left:50%;top:calc(8px + env(safe-area-inset-top));transform:translate(-50%,-160%);width:min(420px,calc(100vw - 24px));background:var(--bg3);border:1px solid var(--line);border-radius:16px;padding:12px 16px;box-shadow:0 8px 24px rgb(0 0 0/.35);z-index:30;display:flex;gap:12px;align-items:center;text-align:left;cursor:pointer;transition:transform .45s var(--spring),opacity .25s;opacity:0;pointer-events:none}
+#pop.show{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+.pcol{display:flex;flex-direction:column;min-width:0;flex:1}
+.ell1{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.setrow{display:flex;align-items:center;gap:16px}
+.sw{width:48px;height:24px;border-radius:12px;background:var(--bg4);position:relative;flex:none;transition:background .2s}
+.sw::after{content:"";position:absolute;left:4px;top:4px;width:16px;height:16px;border-radius:50%;background:var(--text);transition:transform .25s var(--spring),background .2s}
+.sw.on{background:var(--accent)}.sw.on::after{transform:translateX(24px);background:var(--on)}
+.chip.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,var(--bg3))}
+.me-chip{max-width:132px}#mid{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hrow{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;cursor:pointer;transition:background .15s,transform .15s var(--ease)}
+.hrow:hover{background:var(--bg3)}.hrow:active{transform:scale(.985)}
+.hrow .av{border-radius:12px}
+.hrow .ib{width:32px;height:32px;opacity:.5}.hrow .ib:hover{opacity:1}
+.row2{display:flex;align-items:center;gap:16px}
+#home{overflow-y:auto}
+.colgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.crow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px 6px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:var(--bg3)}
+.crow input{width:40px;height:28px;padding:0;border:0;border-radius:6px;background:none;cursor:pointer;flex:none}
+.cprev{display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:12px;background:var(--bg);border:1px solid var(--line)}
+.cprev .row{margin-top:0;width:100%}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}.rise,.ncard{opacity:1;transform:none}}
+</style></head><body>
+
+<!-- ===== ホーム ===== -->
+<section class="screen" id="home" hidden>
+ <div class="wrap">
+  <div class="brand rise" style="--d:0"><span class="logo" id="logo2"></span><b style="flex:1">ウェブチャット</b><button class="ib" id="setBtn3" aria-label="通知などの設定"><svg class="ic"><use href="#i-set"/></svg></button><button class="chip" id="help2" aria-label="使い方を見る">使い方</button></div>
+  <div class="card rise" style="--d:1" id="hprof"></div>
+  <button class="btn pri rise" style="--d:2;height:56px;font-size:16px" id="goJoin"><svg class="ic"><use href="#i-chat"/></svg>部屋に入る</button>
+  <button class="off rise" style="--d:3" id="offBtn">
+   <span class="oi"><svg class="ic"><use href="#i-bell"/></svg></span>
+   <span style="flex:1;min-width:0"><b>お知らせ</b><br><span class="xs mute">アップデートの情報</span></span>
+   <span class="new" id="newBadge" hidden>NEW</span>
+  </button>
+  <div class="rise" style="--d:4"><div class="lab" style="margin:0 0 8px 4px">最近の部屋</div><div class="card" style="padding:8px" id="hrooms"></div></div>
+ </div>
+</section>
+
+<!-- ===== 入口 ===== -->
+<section class="screen" id="entry">
+ <div class="wrap">
+  <div class="brand rise" style="--d:0"><button class="ib" id="eBack" aria-label="ホームに戻る" hidden><svg class="ic"><use href="#i-left"/></svg></button><span class="logo" id="logo"></span><b style="flex:1">ウェブチャット</b><button class="ib" id="setBtn" aria-label="通知などの設定"><svg class="ic"><use href="#i-set"/></svg></button><button class="chip" id="help" aria-label="使い方を見る">使い方</button></div>
+
+  <div class="card rise" style="--d:1">
+   <div class="lab">① あなたのID　<span class="faint">適当な文字を入れるとIDが決まります</span></div>
+   <div class="idbox"><span class="av big" id="eav" hidden></span><div class="idtxt none" id="eid"><span style="--i:0">—</span></div></div>
+   <input id="seed" maxlength="40" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="例：ねこ、abc123、なんでもOK" aria-label="IDのもとになる文字">
+   <p class="xs faint">同じ文字ならいつでも同じIDになります。入れた文字は他の人には見えません。</p>
+   <div class="lab" style="margin-top:8px">表示名　<span class="faint">任意・チャット中も変えられます</span></div>
+   <input id="nick" maxlength="12" autocomplete="off" spellcheck="false" placeholder="例：ねこ（空ならIDだけ表示）" aria-label="表示名">
+  </div>
+
+  <div class="card rise" style="--d:2">
+   <div class="lab">② 部屋名　<span class="faint">同じ部屋名を知っている人と会話できます</span></div>
+   <input id="room" maxlength="30" autocomplete="off" placeholder="部屋名を入力" aria-label="部屋名">
+   <button class="btn pri" id="go" disabled>入る</button>
+  </div>
+
+  <p class="xs faint rise" style="--d:4;text-align:center">登録は不要です。メッセージは部屋名から作った鍵で暗号化して送られます。</p>
+ </div>
+</section>
+
+<!-- ===== お知らせ ===== -->
+<section class="screen" id="notice" hidden>
+ <div class="top"><button class="ib" id="nBack" aria-label="戻る"><svg class="ic"><use href="#i-left"/></svg></button><div class="t"><b>お知らせ</b></div></div>
+ <div id="nlist"><div class="nin" id="nin"></div></div>
+</section>
+
+<!-- ===== チャット ===== -->
+<section class="screen" id="chat" hidden>
+ <div class="top">
+  <button class="ib" id="cBack" aria-label="戻る"><svg class="ic"><use href="#i-left"/></svg></button>
+  <div class="t"><b id="rname"></b><span class="st"><i class="dot wait" id="dot"></i><span id="stxt">接続中…</span></span></div>
+  <button class="ib" id="setBtn2" aria-label="通知などの設定"><svg class="ic"><use href="#i-set"/></svg></button>
+  <button class="ib" id="link" aria-label="この部屋のリンクをコピー"><svg class="ic"><use href="#i-link"/></svg></button>
+  <button class="me-chip" id="meChip" aria-label="表示名を変更"><span class="av" id="mav"></span><span id="mid"></span></button>
+ </div>
+ <div id="msgs"></div>
+ <button class="jump" id="jump" hidden>↓ 新着</button>
+ <div class="comp">
+  <div class="compbox"><textarea id="ta" rows="1" maxlength="500" placeholder="メッセージを入力" aria-label="メッセージ"></textarea><button class="ib send" id="send" aria-label="送信"><svg class="ic"><use href="#i-send"/></svg></button></div>
+  <span class="cnt" id="cnt" hidden></span>
+ </div>
+</section>
+<div id="coach" hidden><div class="spot" id="spot"></div><div class="cscrim" id="cscrim" hidden></div><div class="coachb" id="coachb"></div></div>
+<div class="tut" id="nameDlg" hidden role="dialog" aria-label="表示名">
+ <div class="tcard"><b style="font-size:16px">表示名を変える</b>
+  <input id="nn" maxlength="12" autocomplete="off" spellcheck="false" placeholder="空にするとIDだけ表示" aria-label="表示名">
+  <p class="xs faint">IDは変わりません。これから送るメッセージに反映されます。</p>
+  <div class="tacts"><button class="btn" id="nnCancel">キャンセル</button><button class="btn pri" id="nnSave">保存</button></div></div>
+</div>
+<div class="tut" id="setDlg" hidden role="dialog" aria-label="通知とホーム画面">
+ <div class="tcard" style="max-height:calc(100vh - 32px);overflow-y:auto">
+  <b style="font-size:16px">自分の吹き出し</b>
+  <div class="colgrid">
+   <label class="crow"><span>吹き出しの色</span><input type="color" id="cBg" aria-label="吹き出しの色"></label>
+   <label class="crow"><span>文字の色</span><input type="color" id="cTx" aria-label="文字の色"></label>
+  </div>
+  <div class="lab">表示する側</div>
+  <div class="chips" id="sideSel"><button class="chip" data-side="auto">おまかせ</button><button class="chip" data-side="r">右</button><button class="chip" data-side="l">左</button></div>
+  <p class="xs faint" style="margin-top:-8px">おまかせは「自分は右・相手は左」です。</p>
+  <div class="cprev" id="cprev"></div>
+  <div class="setrow"><span class="xs faint" style="flex:1">あなたが送るメッセージの見た目として、相手の画面にも反映されます。</span><button class="chip" id="cReset">元に戻す</button></div>
+  <hr style="border:0;border-top:1px solid var(--line)">
+  <b style="font-size:16px">通知</b>
+  <div class="setrow"><span class="pcol"><b>ポップアップ通知</b><span class="xs mute">新着メッセージを画面の上に表示します</span></span><button class="sw" id="swPop" role="switch" aria-label="ポップアップ通知"></button></div>
+  <div class="xs mute" id="sysrow"></div>
+  <div class="setrow"><span class="pcol"><b>通知音</b><span class="xs mute">初期設定はオフです</span></span><button class="sw" id="swSnd" role="switch" aria-label="通知音"></button></div>
+  <div class="chips" id="sndtype"><button class="chip" data-s="pon">ぽん</button><button class="chip" data-s="chime">ちりん</button><button class="chip" data-s="tick">こつ</button></div>
+  <div class="tacts"><button class="btn" id="tstSnd">音を鳴らす</button><button class="btn" id="tstPop">通知を試す</button></div>
+  <p class="xs faint">通知は、このページを開いている間だけ届きます。ページを閉じると届きません。</p>
+  <hr style="border:0;border-top:1px solid var(--line)">
+  <b style="font-size:16px">ホーム画面に追加</b>
+  <p class="xs mute" id="instxt"></p>
+  <button class="btn pri" id="instBtn" hidden>ホーム画面に追加</button>
+  <button class="btn" id="setClose">閉じる</button>
+ </div>
+</div>
+<div id="pop" role="status"></div>
+<div id="toast" role="status"></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+ <symbol id="i-left" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6" fill="none"/></symbol>
+ <symbol id="i-send" viewBox="0 0 24 24"><path d="M21 3 10 14M21 3l-7 18-4-7-7-4z" fill="none"/></symbol>
+ <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4zM10 21h4" fill="none"/></symbol>
+ <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.700 0l3-3a4 4 0 0 0-5.700-5.700l-1 1M14 10a4 4 0 0 0-5.700 0l-3 3a4 4 0 0 0 5.700 5.700l1-1" fill="none"/></symbol>
+ <symbol id="i-set" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10" fill="none"/><circle cx="16" cy="7" r="2" fill="none"/><circle cx="8" cy="17" r="2" fill="none"/></symbol>
+ <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" fill="none"/></symbol>
+ <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-5 4V6a1 1 0 0 1 1-1z" fill="none"/><path d="M8.500 11h.01M12 11h.01M15.500 11h.01" fill="none"/></symbol>
+</svg>
+
+<script>
+'use strict';
+/* =====================================================
+   お知らせ（公式）: 更新のたびにここの先頭へ書き足します。
+   id は前より大きい数字にしてください（NEWの判定に使います）
+   ===================================================== */
+const NOTICES=[
+ {id:7,date:'2026-11-14',title:'吹き出しの色と位置を変えられるようになりました',body:'設定から、自分の吹き出しの色・文字の色・表示する側（右／左）を選べます。カラーピッカーで自由に決められます。選んだ見た目は、あなたのメッセージとして相手の画面にも反映されます。'},
+ {id:6,date:'2026-11-14',title:'ホーム画面を追加しました',body:'お知らせ、最近入った部屋、未読の数を、ひと目で見られるホーム画面を追加しました。部屋の一覧から外したいときは、右の×を押してください。'},
+ {id:5,date:'2026-11-14',title:'通知とホーム画面に対応しました',body:'新着メッセージをポップアップで表示できます（初期設定はオン）。通知音は初期設定ではオフで、入口右上の設定から、オン・オフと音の種類を変えられます。ホーム画面への追加方法も同じ画面にあります。'},
+ {id:4,date:'2026-11-14',title:'使い方が「一緒に進める」形になりました',body:'実際に操作しながら、IDづくりから部屋に入って送信するところまで練習できます。練習中のメッセージは外には送られません。入口の「使い方」からいつでも始められます。'},
+ {id:3,date:'2026-11-14',title:'表示名と使い方ガイドを追加しました',body:'IDとは別に、好きな表示名を付けられるようになりました。入口でも、チャット右上のIDをタップしても変えられます。\n入口の「使い方」から、いつでもガイドを見返せます。'},
+ {id:2,date:'2026-11-14',title:'部屋の入り方',body:'部屋名を決めて「入る」を押すだけです。同じ部屋名を知っている人なら、誰でも同じ部屋に入れます。\n部屋名は大文字・小文字や全角・半角を区別しません。'},
+ {id:1,date:'2026-11-14',title:'ウェブチャットを公開しました',body:'登録なしで使えます。適当な文字を入れるとIDが決まり、同じ文字なら次回も同じIDになります。'}
+];
+
+/* ---------- utils ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const store={g(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},s(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const two=n=>String(n).padStart(2,'0');
+const fmtT=t=>{const d=new Date(t);return two(d.getHours())+':'+two(d.getMinutes())};
+const dayK=t=>new Date(t).toDateString();
+const fmtD=t=>{const d=new Date(t),n=new Date();if(dayK(t)===n.toDateString())return '今日';if(dayK(t)===new Date(n-864e5).toDateString())return '昨日';return (d.getFullYear()!==n.getFullYear()?d.getFullYear()+'年':'')+(d.getMonth()+1)+'月'+d.getDate()+'日'};
+const coarse=matchMedia('(pointer:coarse)').matches;
+let toastT;function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('show'),2200)}
+$('#logo').innerHTML=$('#logo2').innerHTML='<svg class="ic"><use href="#i-chat"/></svg>';
+
+/* ---------- SHA-256（どの環境でも動くように自前） ---------- */
+const PR=[];for(let n=2;PR.length<64;n++)if(PR.every(p=>n%p))PR.push(n);
+const frac=x=>Math.floor((x-Math.floor(x))*4294967296);
+const K=PR.map(p=>frac(Math.pow(p,1/3))),H0=PR.slice(0,8).map(p=>frac(Math.sqrt(p)));
+const rotr=(x,n)=>(x>>>n)|(x<<(32-n));
+function sha256(str){
+ const bytes=new TextEncoder().encode(str),l=bytes.length,n=((l+9+63)>>6)<<6,m=new Uint8Array(n);
+ m.set(bytes);m[l]=0x80;const dv=new DataView(m.buffer);dv.setUint32(n-8,Math.floor(l*8/4294967296));dv.setUint32(n-4,(l*8)>>>0);
+ let h=H0.slice();const w=new Uint32Array(64);
+ for(let o=0;o<n;o+=64){
+  for(let i=0;i<16;i++)w[i]=dv.getUint32(o+i*4);
+  for(let i=16;i<64;i++){const a=w[i-15],c=w[i-2];w[i]=(w[i-16]+(rotr(a,7)^rotr(a,18)^(a>>>3))+w[i-7]+(rotr(c,17)^rotr(c,19)^(c>>>10)))>>>0}
+  let [a,b,c,d,e,f,g,k]=h;
+  for(let i=0;i<64;i++){
+   const t1=(k+(rotr(e,6)^rotr(e,11)^rotr(e,25))+((e&f)^(~e&g))+K[i]+w[i])>>>0;
+   const t2=((rotr(a,2)^rotr(a,13)^rotr(a,22))+((a&b)^(a&c)^(b&c)))>>>0;
+   k=g;g=f;f=e;e=(d+t1)>>>0;d=c;c=b;b=a;a=(t1+t2)>>>0}
+  h=h.map((v,i)=>(v+[a,b,c,d,e,f,g,k][i])>>>0)}
+ const out=new Uint8Array(32),ov=new DataView(out.buffer);h.forEach((v,i)=>ov.setUint32(i*4,v));return out}
+const hex=u=>[...u].map(x=>x.toString(16).padStart(2,'0')).join('');
+const AL='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+/* ---------- ID ---------- */
+function makeId(seed){const h=sha256('id:'+seed.normalize('NFKC').trim());return {id:[...Array(6)].map((_,i)=>AL[h[i]%32]).join(''),hue:((h[6]<<8)|h[7])%360}}
+const hueCache={};function hueOf(id){return hueCache[id]??(hueCache[id]=((v=>(v[0]<<8|v[1])%360)(sha256('id-hue:'+id))))}
+/* ※ 自分のIDの色は makeId の hue と一致させるため、makeId 側も hueOf と同じ式にする */
+const idOf=seed=>{const r=makeId(seed);r.hue=hueOf(r.id);return r};
+
+/* ---------- 通知・音・ホーム画面 ---------- */
+const SET=Object.assign({popup:true,sound:false,snd:'pon'},store.g('wc2.set',{}));
+const saveSet=()=>store.s('wc2.set',SET);
+/* 自分の吹き出し（色・文字色・右左）。送るメッセージに添えて、相手にも反映される */
+const hexOk=v=>/^#[0-9a-f]{6}$/i.test(v||'');
+const STY=Object.assign({bg:'',tx:'',side:'auto'},(()=>{const o=store.g('wc2.style',null);if(o)return o;const t=store.g('wc2.theme',{});return {bg:hexOk(t.meBg)?t.meBg:'',tx:hexOk(t.meTx)?t.meTx:''}})());
+const saveSty=()=>store.s('wc2.style',STY);
+const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function autoText(bg){const n=parseInt(bg.slice(1),16),r=n>>16,g=(n>>8)&255,b=n&255;return (r*299+g*587+b*114)/1000>150?'#111111':'#ffffff'}
+function styleOf(m){const mine=m.u===S.id,src=mine?{c:STY.bg,k:STY.tx,s:STY.side==='auto'?'':STY.side}:{c:m.c,k:m.k,s:m.s};
+ const right=src.s==='r'?true:src.s==='l'?false:mine,bg=hexOk(src.c)?src.c:'',tx=hexOk(src.k)?src.k:(bg?autoText(bg):'');return {right,mine,bg,tx}}
+const bubAttr=sy=>(sy.bg||sy.tx)?` cu" style="${sy.bg?`background:${sy.bg};border-color:${sy.bg};`:''}${sy.tx?`color:${sy.tx}`:''}`:'';
+function drawColors(skip){
+ const eb=STY.bg||cssv('--accent'),et=STY.tx||(STY.bg?autoText(STY.bg):cssv('--on'));
+ if(skip!=='cBg'&&hexOk(eb))$('#cBg').value=eb;if(skip!=='cTx'&&hexOk(et))$('#cTx').value=et;
+ $$s('#sideSel .chip').forEach(b=>b.classList.toggle('on',b.dataset.side===STY.side));
+ const sb=hexOk(STY.bg)?STY.bg:'',sy={right:STY.side==='l'?false:true,bg:sb,tx:hexOk(STY.tx)?STY.tx:(sb?autoText(sb):'')};
+ $('#cprev').innerHTML=`<div class="row mine ${sy.right?'r':''}"><div class="col"><div class="bub${bubAttr(sy)}">こんにちは。こんな見た目になります</div></div></div>`}
+function styChanged(skip){saveSty();drawColors(skip);if(S.room)render()}
+$('#cBg').addEventListener('input',e=>{STY.bg=e.target.value;styChanged('cBg')});
+$('#cTx').addEventListener('input',e=>{STY.tx=e.target.value;styChanged('cTx')});
+$('#sideSel').addEventListener('click',e=>{const b=e.target.closest('[data-side]');if(!b)return;STY.side=b.dataset.side;styChanged()});
+$('#cReset').onclick=()=>{STY.bg='';STY.tx='';STY.side='auto';styChanged()};
+const UN={};            /* 部屋ごとの未読数（入っていない部屋） */
+const W=new Map();      /* 入口にいる間、最近の部屋を見張る接続 */
+const topicOf=norm=>'wcr-'+hex(sha256('topic:'+norm)).slice(0,40);
+/* 音 */
+let AC=null;
+function ac(){try{if(!AC)AC=new(window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();return AC}catch(e){return null}}
+['pointerdown','keydown','touchstart'].forEach(t=>addEventListener(t,()=>{if(AC){if(AC.state==='suspended')AC.resume()}else if(SET.sound)ac()},{passive:true}));
+function tone(c,f,t0,d,type='sine',g=.12){const o=c.createOscillator(),v=c.createGain();o.type=type;o.frequency.value=f;o.connect(v);v.connect(c.destination);const t=c.currentTime+t0;v.gain.setValueAtTime(.0001,t);v.gain.exponentialRampToValueAtTime(g,t+.02);v.gain.exponentialRampToValueAtTime(.0001,t+d);o.start(t);o.stop(t+d+.02)}
+const SNDS={pon:c=>tone(c,660,0,.18),chime:c=>{tone(c,988,0,.16);tone(c,1319,.12,.28)},tick:c=>tone(c,520,0,.07,'triangle',.18)};
+function playSnd(force){if(!force&&!SET.sound)return;const c=ac();if(!c)return;try{(SNDS[SET.snd]||SNDS.pon)(c)}catch(e){}}
+/* ポップアップ */
+const sysState=()=>('Notification' in window)?Notification.permission:'unsupported';
+let popT;
+function showPop(room,m){const p=$('#pop');const who=m.n?esc(m.n)+'<span class="idc">#'+esc(m.u)+'</span>':esc(m.u);
+ p.innerHTML=`<span class="av" style="--h:${hueOf(m.u)}">${esc(m.n?[...m.n][0]:m.u.slice(0,2))}</span><span class="pcol"><span class="xs mute ell1">${who} ・ ${esc(room.name)}</span><span class="ell1">${esc(m.x)}</span></span>`;
+ p.dataset.name=room.name;p.classList.add('show');clearTimeout(popT);popT=setTimeout(()=>p.classList.remove('show'),4500)}
+$('#pop').onclick=()=>{const p=$('#pop');p.classList.remove('show');const n=p.dataset.name;if(n&&n!=='テスト部屋'&&!T.on&&S.id&&!(S.room&&S.room.name===n))openRoom(n)};
+function notifyMsg(room,m,soundOnly){
+ if(typeof T!=='undefined'&&T.on)return;
+ if(SET.popup&&!soundOnly){
+  if((document.hidden||!document.hasFocus())&&sysState()==='granted'){
+   try{const n=new Notification((m.n?m.n+' #'+m.u:m.u)+' ・ '+room.name,{body:m.x.slice(0,100),tag:room.topic,icon:ICON});n.onclick=()=>{window.focus();n.close();if(room.name!=='テスト部屋'&&!(S.room&&S.room.topic===room.topic))openRoom(room.name)}}catch(e){showPop(room,m)}}
+  else showPop(room,m)}
+ playSnd()}
+/* 入口にいる間も、最近の部屋の新着を受け取る */
+async function syncWatch(){
+ const want=new Map();
+ if((SET.popup||SET.sound)&&S.id)for(const n of store.g('wc2.recent',[])){const norm=normRoom(n),t=topicOf(norm);if(S.room&&S.room.topic===t)continue;want.set(t,{name:n,norm})}
+ for(const [t,w] of W)if(!want.has(t)){w.es.close();W.delete(t)}
+ for(const [t,v] of want){if(W.has(t))continue;const key=await getKey(v.norm);if(W.has(t)||!(SET.popup||SET.sound))continue;
+  const w={name:v.name,topic:t,key,seen:new Set(),es:null};
+  w.es=new EventSource(BASE+t+'/sse?since=3s');
+  w.es.onmessage=async ev=>{let d;try{d=JSON.parse(ev.data)}catch(e){return}if(d.event!=='message'||typeof d.message!=='string')return;
+   const m=await dec(d.message,key);if(!m||typeof m.id!=='string'||typeof m.x!=='string'||typeof m.u!=='string')return;
+   if(m.u===S.id||w.seen.has(m.id)||(S.room&&S.room.topic===t))return;w.seen.add(m.id);
+   UN[t]=(UN[t]||0)+1;LASTM[t]={n:typeof m.n==='string'?cleanNick(m.n):'',x:m.x.slice(0,500),t:m.t};if(!$('#home').hidden)drawHome();
+   notifyMsg({name:w.name,topic:t},{u:m.u.slice(0,6),n:typeof m.n==='string'?cleanNick(m.n):'',x:m.x.slice(0,500),t:m.t},false)};
+  W.set(t,w)}}
+/* ホーム画面に追加 */
+function mkIcon(sz){const c=document.createElement('canvas');c.width=c.height=sz;const x=c.getContext('2d');x.fillStyle='#4cc09a';x.fillRect(0,0,sz,sz);x.fillStyle='#0c1f18';
+ const a=sz*.2,b=sz*.26,w=sz*.6,h=sz*.38,r=sz*.09;x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath();x.fill();
+ x.beginPath();x.moveTo(sz*.3,sz*.6);x.lineTo(sz*.3,sz*.76);x.lineTo(sz*.46,sz*.6);x.closePath();x.fill();
+ x.fillStyle='#4cc09a';[.36,.5,.64].forEach(f=>{x.beginPath();x.arc(sz*f,sz*.45,sz*.035,0,7);x.fill()});return c}
+let ICON='';
+try{const l=document.createElement('link');l.rel='apple-touch-icon';l.href=mkIcon(180).toDataURL('image/png');document.head.appendChild(l);ICON=mkIcon(192).toDataURL('image/png');
+ const man={name:'ウェブチャット',short_name:'ウェブチャット',start_url:location.href.split('#')[0],display:'standalone',background_color:'#111413',theme_color:'#111413',icons:[{src:ICON,sizes:'192x192',type:'image/png',purpose:'any maskable'},{src:mkIcon(512).toDataURL('image/png'),sizes:'512x512',type:'image/png',purpose:'any maskable'}]};
+ const ml=document.createElement('link');ml.rel='manifest';ml.href=URL.createObjectURL(new Blob([JSON.stringify(man)],{type:'application/manifest+json'}));document.head.appendChild(ml)}catch(e){}
+let DIP=null;
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();DIP=e;drawSet()});
+addEventListener('appinstalled',()=>{DIP=null;drawSet()});
+const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const embedded=(()=>{try{return window.self!==window.top}catch(e){return true}})();
+const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+function drawSet(){
+ drawColors();
+ const sw=(id,on)=>{const e=$(id);e.classList.toggle('on',on);e.setAttribute('aria-checked',on)};
+ sw('#swPop',SET.popup);sw('#swSnd',SET.sound);
+ $$s('#sndtype .chip').forEach(b=>b.classList.toggle('on',b.dataset.s===SET.snd));
+ $('#sndtype').style.opacity=SET.sound?1:.45;
+ const st=sysState(),sr=$('#sysrow');
+ sr.innerHTML=st==='granted'?'端末の通知：許可済み。ページを開いたまま別のアプリを見ている間も、端末の通知で届きます。':st==='denied'?'端末の通知：ブロックされています。ブラウザの設定で許可すると使えます。画面内のポップアップは使えます。':st==='default'?'端末の通知：まだ許可していません。<button class="chip" id="sysReq" style="margin-left:8px">許可する</button>':'この環境では端末の通知を使えません。画面内のポップアップだけ表示されます。';
+ if($('#sysReq'))$('#sysReq').onclick=async()=>{try{await Notification.requestPermission()}catch(e){}drawSet()};
+ $('#instBtn').hidden=!DIP;
+ $('#instxt').textContent=standalone()?'ホーム画面から開いています。':embedded?'この画面の中からは追加できません。このページを単体で開いてから追加してください。':DIP?'下のボタンで、ホーム画面に追加できます。':isIOS?'Safariの共有ボタン（□に↑）から「ホーム画面に追加」を選んでください。アプリ内ブラウザでは追加できないことがあります。':'ブラウザのメニューから「ホーム画面に追加」または「アプリをインストール」を選んでください。アプリ内ブラウザでは追加できないことがあります。'}
+const $$s=s=>[...document.querySelectorAll(s)];
+function openSet(){drawSet();$('#setDlg').hidden=false}
+$('#setBtn').onclick=openSet;$('#setBtn2').onclick=openSet;$('#setBtn3').onclick=openSet;
+$('#setClose').onclick=()=>{$('#setDlg').hidden=true};
+$('#setDlg').addEventListener('pointerdown',e=>{if(e.target===e.currentTarget)e.currentTarget.hidden=true});
+$('#swPop').onclick=()=>{SET.popup=!SET.popup;saveSet();drawSet();syncWatch()};
+$('#swSnd').onclick=()=>{SET.sound=!SET.sound;saveSet();drawSet();if(SET.sound)playSnd(true);syncWatch()};
+$('#sndtype').addEventListener('click',e=>{const b=e.target.closest('[data-s]');if(!b)return;SET.snd=b.dataset.s;saveSet();drawSet();playSnd(true)});
+$('#tstSnd').onclick=()=>playSnd(true);
+$('#tstPop').onclick=()=>{if(!SET.popup){toast('ポップアップ通知がオフです');return}showPop({name:'テスト部屋'},{u:S.id||'TEST01',n:S.nick,x:'これは通知のテストです。'});playSnd()};
+$('#instBtn').onclick=async()=>{if(!DIP)return;try{DIP.prompt();await DIP.userChoice}catch(e){}DIP=null;drawSet()};
+
+/* ---------- 入口 ---------- */
+const S={seed:store.g('wc2.seed',''),nick:store.g('wc2.nick',''),id:null,hue:0,room:null,es:null};
+const screens=['home','entry','notice','chat'];
+function show(name,back){screens.forEach(s=>{const e=$('#'+s);e.hidden=s!==name;e.classList.toggle('back',!!back)});}
+function drawId(){
+ const el=$('#eid'),av=$('#eav');$('#eBack').hidden=!S.id;
+ if(!S.id){el.className='idtxt none';el.innerHTML='<span style="--i:0">——————</span>';av.hidden=true;return}
+ el.className='idtxt';el.innerHTML=[...S.id].map((c,i)=>`<span style="--i:${i}">${c}</span>`).join('');
+ av.hidden=false;av.style.setProperty('--h',S.hue);av.textContent=S.id.slice(0,2)}
+function setSeed(v){S.seed=v;if(v.trim()){const r=idOf(v);S.id=r.id;S.hue=r.hue}else S.id=null;drawId();store.s('wc2.seed',v);upd()}
+function upd(){$('#go').disabled=!(S.id&&normRoom($('#room').value))}
+const normRoom=s=>String(s||'').normalize('NFKC').trim().toLowerCase().replace(/\s+/g,' ');
+const LASTM={};
+function drawRecent(){drawHome()}
+function drawHome(){
+ const hp=$('#hprof'),hr=$('#hrooms');if(!hp||!hr)return;
+ if(S.id){hp.innerHTML=`<div class="row2"><span class="av big" style="--h:${S.hue}">${esc(S.nick?[...S.nick][0]:S.id.slice(0,2))}</span><span class="pcol"><b style="font-size:16px" class="ell1">${S.nick?esc(S.nick):'表示名なし'}</b><span class="xs mute mono">ID: ${S.id}</span></span><button class="chip" id="hEdit">変更</button></div>`;
+  $('#hEdit').onclick=()=>{show('entry');if(!coarse)setTimeout(()=>$('#seed').focus(),350)}}
+ const r=store.g('wc2.recent',[]);
+ hr.innerHTML=r.length?r.map(n=>{const t=topicOf(normRoom(n)),h=store.g('wc2.h.'+t,[]);let m=h[h.length-1];const lm=LASTM[t];if(lm&&(!m||lm.t>m.t))m=lm;const u=UN[t]||0;
+  const prev=m?esc((m.n?m.n+'：':'')+m.x):'<span class="faint">まだ履歴がありません</span>';
+  const tm=m?(dayK(m.t)===new Date().toDateString()?fmtT(m.t):fmtD(m.t)):'';
+  return `<div class="hrow" role="button" tabindex="0" data-n="${esc(n)}"><span class="av" style="--h:${hueOf(t)}">${esc([...n][0])}</span><span class="pcol"><b class="ell1">${esc(n)}</b><span class="xs mute ell1">${prev}</span></span><span class="xs faint">${tm}</span>${u?`<span class="new">${u}</span>`:''}<button class="ib" data-del="${esc(n)}" aria-label="一覧から外す"><svg class="ic"><use href="#i-x"/></svg></button></div>`}).join('')
+  :`<div class="hint" style="padding:24px 16px"><b style="color:var(--text)">まだ部屋に入っていません</b><br>「部屋に入る」から、部屋名を入れて始めましょう。</div>`;
+ drawBadge()}
+$('#hrooms').addEventListener('click',e=>{const d=e.target.closest('[data-del]');if(d){const n=d.dataset.del;store.s('wc2.recent',store.g('wc2.recent',[]).filter(x=>x!==n));delete UN[topicOf(normRoom(n))];syncWatch();drawHome();return}const r=e.target.closest('.hrow');if(r)openRoom(r.dataset.n)});
+$('#hrooms').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.classList&&e.target.classList.contains('hrow'))openRoom(e.target.dataset.n)});
+$('#goJoin').onclick=()=>{show('entry');if(!coarse)setTimeout(()=>$('#room').focus(),350)};
+$('#eBack').onclick=()=>{show('home',true);drawHome()};
+$('#seed').addEventListener('input',e=>setSeed(e.target.value));
+$('#room').addEventListener('input',upd);
+$('#room').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing&&!$('#go').disabled)$('#go').click()});
+$('#seed').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing)$('#room').focus()});
+$('#go').onclick=()=>{
+ if($('#go').disabled){const c=$('.card:nth-of-type(2)');return}
+ openRoom($('#room').value.trim())};
+
+/* ---------- お知らせ ---------- */
+const maxNotice=Math.max(...NOTICES.map(n=>n.id));
+function drawBadge(){$('#newBadge').hidden=!(store.g('wc2.noticeSeen',0)<maxNotice)}
+$('#offBtn').onclick=()=>{
+ const seen=store.g('wc2.noticeSeen',0);
+ $('#nin').innerHTML=[...NOTICES].sort((a,b)=>b.id-a.id).map((n,i)=>`<article class="ncard ${n.id>seen?'fresh':''}" style="--d:${i}"><div class="ntop"><span class="xs faint">${esc(n.date)}</span>${n.id>seen?'<span class="new">NEW</span>':''}</div><h3>${esc(n.title)}</h3><p>${esc(n.body)}</p></article>`).join('');
+ store.s('wc2.noticeSeen',maxNotice);show('notice');pushH('notice')};
+$('#nBack').onclick=()=>goBackUI();
+
+/* ---------- 暗号 ---------- */
+const b64=u=>btoa(String.fromCharCode(...u)),unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function getKey(norm){try{if(!(window.crypto&&crypto.subtle))return null;return await crypto.subtle.importKey('raw',sha256('key:'+norm),'AES-GCM',false,['encrypt','decrypt'])}catch(e){return null}}
+async function enc(obj,key){const data=new TextEncoder().encode(JSON.stringify(obj));
+ if(key){const iv=crypto.getRandomValues(new Uint8Array(12));const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,data));const o=new Uint8Array(12+ct.length);o.set(iv);o.set(ct,12);return 'e1.'+b64(o)}
+ return 'p1.'+b64(data)}
+async function dec(str,key){try{const t=str.slice(0,3),body=unb64(str.slice(3));let data;
+ if(t==='e1.'){if(!key)return null;data=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:body.slice(0,12)},key,body.slice(12)))}
+ else if(t==='p1.')data=body;else return null;
+ return JSON.parse(new TextDecoder().decode(data))}catch(e){return null}}
+
+/* ---------- 部屋 ---------- */
+const BASE='https://ntfy.sh/';
+const linkify=t=>esc(t).replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+async function openRoom(name,fromPop){
+ const norm=normRoom(name);if(!norm||!S.id)return;
+ closeRoom();
+ const practice=T.on;
+ const topic=practice?'practice':topicOf(norm);
+ const key=practice?null:await getKey(norm);
+ const room=S.room={name,norm,topic,key,msgs:new Map(),ready:practice,unseen:0,practice,openT:Date.now()};UN[topic]=0;
+ if(!practice){const hist=store.g('wc2.h.'+topic,[]);hist.forEach(m=>room.msgs.set(m.id,m));
+  const rec=[name,...store.g('wc2.recent',[]).filter(n=>normRoom(n)!==norm)].slice(0,6);store.s('wc2.recent',rec)}
+ $('#rname').textContent=name;$('#mid').textContent=S.nick||S.id;$('#mav').style.setProperty('--h',S.hue);$('#mav').textContent=S.id.slice(0,2);
+ $('#ta').value='';autosize();setStatus(practice?'on':'wait',practice?'れんしゅう中（送信されません）':'接続中…');
+ show('chat');if(!fromPop)pushH('chat');
+ render(true);
+ if(practice){setTimeout(()=>botSay(room,'ようこそ。ここは練習用の部屋です。何か送ってみてください。'),800);tutHook('enter')}
+ else{connect(room);setTimeout(()=>{if(S.room===room)room.ready=true},1200);syncWatch()}
+ if(!coarse)setTimeout(()=>$('#ta').focus(),340)}
+function closeRoom(){if(S.es){S.es.close();S.es=null}S.room=null}
+function setStatus(k,t){const d=$('#dot');d.className='dot '+(k==='on'?'on':'wait');$('#stxt').textContent=t+(S.room&&S.room.key?'　暗号化':'')}
+function connect(room){
+ const es=S.es=new EventSource(BASE+room.topic+'/sse?since=all');
+ es.onopen=()=>{if(S.room===room)setStatus('on','接続済み')};
+ es.onerror=()=>{if(S.room===room)setStatus('wait',navigator.onLine?'再接続中…':'オフライン')};
+ es.onmessage=async ev=>{let d;try{d=JSON.parse(ev.data)}catch(e){return}
+  if(d.event!=='message'||typeof d.message!=='string')return;
+  const m=await dec(d.message,room.key);if(!m||typeof m.id!=='string'||typeof m.x!=='string'||typeof m.u!=='string'||typeof m.t!=='number'||S.room!==room)return;
+  addMsg(room,{id:m.id.slice(0,24),u:m.u.slice(0,6),t:m.t,x:m.x.slice(0,500),n:typeof m.n==='string'?cleanNick(m.n):'',c:hexOk(m.c)?m.c:'',k:hexOk(m.k)?m.k:'',s:(m.s==='r'||m.s==='l')?m.s:''})}}
+function addMsg(room,m){const old=room.msgs.get(m.id);
+ if(old){if(old.pending||old.failed){old.pending=false;old.failed=false;schedule()}return}
+ m.fresh=room.ready;room.msgs.set(m.id,m);
+ if(m.u!==S.id&&room.ready&&!room.practice){if(document.hidden)document.title='● ウェブチャット';if(m.t>room.openT-5000)notifyMsg(room,m,!document.hidden)}
+ save(room);schedule()}
+function save(room){if(room.practice)return;const a=[...room.msgs.values()].filter(m=>!m.pending&&!m.failed).sort((x,y)=>x.t-y.t).slice(-200).map(({id,u,t,x,n,c,k,s})=>({id,u,t,x,n,c,k,s}));store.s('wc2.h.'+room.topic,a)}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)document.title='ウェブチャット'});
+addEventListener('online',()=>{if(S.room)setStatus('wait','再接続中…')});
+let rq=0;function schedule(){if(rq)return;rq=requestAnimationFrame(()=>{rq=0;render()})}
+
+function render(first){
+ const room=S.room,box=$('#msgs');if(!room)return;
+ const near=first||box.scrollHeight-box.scrollTop-box.clientHeight<96;
+ let list=[...room.msgs.values()].sort((a,b)=>a.t-b.t);if(list.length>300)list=list.slice(-300);
+ let h='',prev=null,fresh=0,mineNew=false;
+ if(!list.length)h=`<div class="hint"><div class="ring"><svg class="ic"><use href="#i-chat"/></svg></div><b style="color:var(--text)">まだ誰もいません</b><br>この部屋名を伝えると、相手も同じ部屋に入れます。</div>`;
+ for(const m of list){
+  const newDay=!prev||dayK(prev.t)!==dayK(m.t);
+  if(newDay)h+=`<div class="day">${fmtD(m.t)}</div>`;
+  const me=m.u===S.id,sy=styleOf(m),first2=newDay||prev.u!==m.u||m.t-prev.t>3e5;
+  const meta=me?(m.failed?`<div class="meta fail" data-retry="${m.id}">送信できませんでした。タップで再送</div>`:`<div class="meta">${m.pending?'送信中…':fmtT(m.t)}</div>`):`<div class="meta">${fmtT(m.t)}</div>`;
+  const av=me?'':(first2?`<span class="av" style="--h:${hueOf(m.u)}">${esc(m.n?[...m.n][0]:m.u.slice(0,2))}</span>`:'<span class="sp"></span>');
+  h+=`<div class="row ${sy.right?'r':''} ${me?'mine':''} ${first2?'first':''} ${m.fresh?'in':''}">${av}<div class="col">${first2&&!me?`<div class="who">${m.n?esc(m.n)+'<span class="idc">#'+esc(m.u)+'</span>':esc(m.u)}</div>`:''}<div class="bub${bubAttr(sy)}">${linkify(m.x)}</div>${meta}</div></div>`;
+  if(m.fresh){fresh++;if(me)mineNew=true;m.fresh=false}
+  prev=m}
+ box.innerHTML=h;
+ if(near||mineNew){box.scrollTop=box.scrollHeight;room.unseen=0;$('#jump').hidden=true}
+ else{box.scrollTop=room.lastTop||0;if(fresh){room.unseen+=fresh;$('#jump').hidden=false;$('#jump').textContent='↓ 新着 '+room.unseen}}}
+$('#msgs').addEventListener('scroll',()=>{const b=$('#msgs');if(S.room)S.room.lastTop=b.scrollTop;if(b.scrollHeight-b.scrollTop-b.clientHeight<96){$('#jump').hidden=true;if(S.room)S.room.unseen=0}},{passive:true});
+$('#jump').onclick=()=>{const b=$('#msgs');b.scrollTo({top:b.scrollHeight,behavior:'smooth'})};
+$('#msgs').addEventListener('click',e=>{const r=e.target.closest('[data-retry]');if(!r||!S.room)return;const m=S.room.msgs.get(r.dataset.retry);if(m)post(m)});
+
+/* ---------- 送信 ---------- */
+const ta=$('#ta');
+function autosize(){ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,136)+'px';const n=[...ta.value].length;$('#send').classList.toggle('rdy',!!ta.value.trim());const c=$('#cnt');c.hidden=n<450;c.textContent=n+'/500'}
+ta.addEventListener('input',autosize);
+ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing&&!coarse){e.preventDefault();send()}});
+$('#send').onclick=send;
+function send(){const room=S.room,x=ta.value.trim();if(!room||!x)return;
+ const m={id:uid(),u:S.id,t:Date.now(),x:x.slice(0,500),n:S.nick,c:STY.bg,k:STY.tx,s:STY.side==='auto'?'':STY.side,pending:true,fresh:true};
+ room.msgs.set(m.id,m);ta.value='';autosize();render();post(m);ta.focus()}
+async function post(m){const room=S.room;if(!room)return;
+ if(room.practice){m.failed=false;m.pending=false;schedule();const l=BOTLINES[Math.min(room._n=(room._n||0)+1,BOTLINES.length)-1];setTimeout(()=>{botSay(room,l);tutHook('sent')},900);return}
+ m.failed=false;m.pending=true;
+ try{const body=await enc({id:m.id,u:m.u,t:m.t,x:m.x,n:m.n||'',c:m.c||'',k:m.k||'',s:m.s||''},room.key);
+  const r=await fetch(BASE+room.topic,{method:'POST',body});if(!r.ok)throw 0;
+  setTimeout(()=>{if(m.pending&&S.room===room){m.pending=false;save(room);schedule()}},4000)}
+ catch(e){m.pending=false;m.failed=true;toast('送信できませんでした')}
+ if(S.room===room)schedule()}
+
+/* ---------- 戻る・リンク ---------- */
+function backToEntry(){closeRoom();show(S.id?'home':'entry',true);drawHome();tutHook('back');syncWatch()}
+$('#cBack').onclick=()=>goBackUI();
+/* 戻る: 埋め込み(iframe)ではブラウザ履歴を使わず、画面を直接切り替える */
+const useHist=(()=>{try{return window.self===window.top}catch(e){return false}})();
+let hDepth=0;
+function pushH(v){if(!useHist)return;try{history.pushState({v},'');hDepth++}catch(e){}}
+function goBackUI(){if(hDepth>0)history.back();else backToEntry()}
+addEventListener('popstate',()=>{hDepth=Math.max(0,hDepth-1);if(!$('#home').hidden)return;backToEntry()});
+$('#link').onclick=async()=>{if(!S.room)return;const u=location.href.split('#')[0]+'#r='+encodeURIComponent(S.room.name);
+ try{await navigator.clipboard.writeText(u);toast('この部屋のリンクをコピーしました')}catch(e){toast('コピーできませんでした')}};
+
+/* ---------- 起動 ---------- */
+$('#seed').value=S.seed;if(S.seed.trim()){const r=idOf(S.seed);S.id=r.id;S.hue=r.hue}drawId();drawRecent();drawBadge();
+let invite=false;const m0=location.hash.match(/^#r=(.+)$/);if(m0){invite=true;try{$('#room').value=decodeURIComponent(m0[1]).slice(0,30)}catch(e){}try{history.replaceState(null,'',location.href.split('#')[0])}catch(e){}}
+upd();
+/* ---------- 表示名 ---------- */
+function cleanNick(s){return String(s||'').replace(/[\u0000-\u001f\u007f]/g,'').replace(/\s+/g,' ').trim().slice(0,12)}
+function setNick(v){S.nick=cleanNick(v);store.s('wc2.nick',S.nick);if(S.room)$('#mid').textContent=S.nick||S.id}
+$('#nick').value=S.nick;
+$('#nick').addEventListener('input',e=>{S.nick=cleanNick(e.target.value);store.s('wc2.nick',S.nick)});
+$('#nick').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing)$('#room').focus()});
+function saveNn(){setNick($('#nn').value);$('#nick').value=S.nick;$('#nameDlg').hidden=true;toast(S.nick?'表示名を変更しました':'表示名を外しました')}
+$('#meChip').onclick=()=>{$('#nn').value=S.nick;$('#nameDlg').hidden=false;setTimeout(()=>$('#nn').focus(),60)};
+$('#nnCancel').onclick=()=>{$('#nameDlg').hidden=true};
+$('#nnSave').onclick=saveNn;
+$('#nn').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing)saveNn()});
+$('#nameDlg').addEventListener('pointerdown',e=>{if(e.target===e.currentTarget)e.currentTarget.hidden=true});
+
+/* ---------- 使い方（一緒に進める） ---------- */
+const T={on:false,i:0,cur:null,nameOpened:false,raf:0};
+const BOTLINES=['届きました。メッセージはこのように表示されます。','何度でも送れます。本番では、同じ部屋名の人にも届きます。','その調子です。'];
+function botSay(room,text){if(S.room!==room)return;addMsg(room,{id:uid(),u:'MIO',n:'ミオ',t:Date.now(),x:text})}
+const STEPS=[
+ {tg:'#seed',hook:'seed',tx:()=>S.id?'すでにIDが決まっています。文字を書き換えると、別のIDになります。試してみてください。':'まず、適当な文字を入れてみましょう。ひらがなでも英数字でもかまいません。'},
+ {tg:'#eid',next:'次へ',tx:()=>S.id?`これがあなたのIDです（${S.id}）。同じ文字を入れれば、いつでも同じIDになります。`:'IDがまだ決まっていません。上の欄に文字を入れてみてください。'},
+ {tg:'#nick',hook:'nick',next:'あとで',tx:()=>'表示名も付けてみましょう。IDの横に表示されます。なくても大丈夫です。'},
+ {tg:'#room',hook:'room',tx:()=>'次は部屋名です。同じ部屋名を知っている人と、同じ部屋で話せます。',act:()=>({label:'「れんしゅう」と入れる',fn(){$('#room').value='れんしゅう';upd();setTimeout(tutNext,350)}})},
+ {tg:'#go',hook:'enter',noskip:true,tx:()=>S.id?'「入る」を押してみましょう。練習なので、外には送られません。':'IDがないと入れません。上の欄に文字を入れてください。',act:()=>S.id?null:{label:'最初に戻る',fn(){T.i=0;drawStep()}}},
+ {tg:'.compbox',hook:'sent',tx:()=>'メッセージを書いて、送ってみましょう。'},
+ {tg:'#msgs',next:'次へ',tx:()=>'ミオから返事が来ました。何も変えなければ、自分は右・相手は左に出ます。'},
+ {tg:'#meChip',hook:'name',tx:()=>'右上のあなたのIDをタップすると、部屋の中でも表示名を変えられます。'},
+ {tg:'#link',hook:'link',tx:()=>'このボタンで、この部屋に入るURLをコピーできます。相手に送ってみてください。'},
+ {tg:'#cBack',hook:'back',noskip:true,tx:()=>'戻るボタンで入口に戻れます。押してみましょう。'},
+ {tg:null,next:'はじめる',end:true,tx:()=>'おしまいです。本番は、部屋名を入れて入るだけ。入口の「使い方」から、いつでもやり直せます。通知や音は、右上の設定から変えられます。'}
+];
+function drawStep(){const s=T.cur=STEPS[T.i],act=s.act&&s.act(),fwd=s.next||(s.hook&&!s.noskip?'とばす':'');
+ $('#coachb').innerHTML=`<div class="cin"><span class="cn">${T.i+1} / ${STEPS.length}</span><div>${esc(s.tx())}</div><div class="cb">${s.end?'':'<button class="cq" id="cx">やめる</button>'}<span style="flex:1"></span>${act?`<button class="cbtn" id="cact">${esc(act.label)}</button>`:''}${fwd?`<button class="cbtn ${s.next?'pri':''}" id="cnext">${esc(fwd)}</button>`:''}</div></div>`;
+ $('#cscrim').hidden=!!s.tg;
+ if(act)$('#cact').onclick=act.fn;if(fwd)$('#cnext').onclick=tutNext;if(!s.end)$('#cx').onclick=endTut}
+function tutNext(){if(!T.on)return;T.i++;if(T.i>=STEPS.length)return endTut();drawStep()}
+function tutHook(n){if(!T.on||!T.cur||T.cur.hook!==n)return;const i=T.i;setTimeout(()=>{if(T.on&&T.i===i)tutNext()},n==='enter'?500:250)}
+function placeCoach(){const b=$('#coachb'),sp=$('#spot'),vh=window.visualViewport?visualViewport.height:innerHeight;
+ const el=T.cur.tg&&$(T.cur.tg),r=el&&el.getClientRects().length?el.getBoundingClientRect():null,bh=b.offsetHeight,bw=b.offsetWidth;let top,left;
+ if(!r||!r.width){sp.style.opacity=0;top=(vh-bh)/2;left=(innerWidth-bw)/2}
+ else{const pd=6;sp.style.opacity=1;sp.style.left=r.left-pd+'px';sp.style.top=r.top-pd+'px';sp.style.width=r.width+pd*2+'px';sp.style.height=r.height+pd*2+'px';
+  if(r.height>vh*.45)top=r.top+12;else if(vh-r.bottom>=bh+20)top=r.bottom+14;else top=r.top-bh-14;
+  left=Math.max(16,Math.min(r.left+r.width/2-bw/2,innerWidth-bw-16))}
+ b.style.top=Math.max(8,Math.min(top,vh-bh-8))+'px';b.style.left=left+'px'}
+function tutLoop(){if(!T.on)return;const dlg=!$('#nameDlg').hidden;$('#coach').style.visibility=dlg?'hidden':'visible';
+ if(T.cur.hook==='name'&&T.nameOpened&&!dlg){T.nameOpened=false;tutNext()}
+ if(T.on){placeCoach();T.raf=requestAnimationFrame(tutLoop)}}
+function startTut(){if(T.on)return;if($('#entry').hidden){if(S.room||!$('#notice').hidden)return;show('entry')}T.on=true;T.i=0;T.nameOpened=false;$('#coach').hidden=false;drawStep();T.raf=requestAnimationFrame(tutLoop)}
+function endTut(){if(!T.on)return;T.on=false;cancelAnimationFrame(T.raf);$('#coach').hidden=true;store.s('wc2.tut2',true);
+ if($('#room').value==='れんしゅう'){$('#room').value='';upd()}
+ if(S.room&&S.room.practice)goBackUI()}
+const dbHook=(sel,hook,ok)=>{let t;$(sel).addEventListener('input',()=>{clearTimeout(t);t=setTimeout(()=>{if(ok())tutHook(hook)},1000)})};
+dbHook('#seed','seed',()=>!!S.id);dbHook('#nick','nick',()=>!!S.nick);dbHook('#room','room',()=>!!normRoom($('#room').value));
+$('#nick').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing)tutHook('nick')});
+$('#meChip').addEventListener('click',()=>{T.nameOpened=true});
+$('#link').addEventListener('click',()=>tutHook('link'));
+$('#help').onclick=startTut;$('#help2').onclick=startTut;
+addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(!$('#setDlg').hidden){$('#setDlg').hidden=true;return}if(!$('#nameDlg').hidden){$('#nameDlg').hidden=true;return}if(T.on)endTut()});
+if(!store.g('wc2.tut2',false))setTimeout(startTut,700);
+else if(!S.id)setTimeout(()=>$('#seed').focus(),500);
+else if($('#room').value&&!coarse)setTimeout(()=>$('#room').focus(),500);
+syncWatch();
+if(S.id&&!invite){show('home');drawHome()}
+</script>
+</body></html>
